@@ -9,8 +9,6 @@ import io.github.jsbd.common.serialization.protocol.xip.XipHeader;
 import io.github.jsbd.common.serialization.protocol.xip.XipMessage;
 import io.github.jsbd.common.serialization.protocol.xip.XipSignal;
 
-import java.io.IOException;
-
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.handler.codec.http.HttpRequest;
@@ -27,7 +25,6 @@ public class HttpRequestJSONDecoder implements Transformer<HttpRequest, Object> 
   private MsgCode2TypeMetainfo typeMetaInfo;
 
   private int                  dumpBytes = 256;
-  private boolean              isDebugEnabled;
   private byte[]               encryptKey;
   private Gson                 gson      = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
 
@@ -39,61 +36,55 @@ public class HttpRequestJSONDecoder implements Transformer<HttpRequest, Object> 
       byte[] bytes = new byte[content.readableBytes()];
       content.readBytes(bytes);
 
-      if (logger.isDebugEnabled() && isDebugEnabled) {
-        logger.debug(ByteUtil.bytesAsHexString(bytes, dumpBytes));
-      }
-      boolean isPress = false;
-      if (request.getHeader("isPress") != null) {
-        isPress = true;
-      }
-      XipSignal signal = decodeXipSignal(bytes, isPress);
-      if (logger.isDebugEnabled() && isDebugEnabled) {
-        logger.debug("decoded signal:{}", ToStringBuilder.reflectionToString(signal));
-      }
+      logger.debug(ByteUtil.bytesAsHexString(bytes, dumpBytes));
+      XipSignal signal = decodeXipSignal(bytes);
+
+      logger.debug("decoded signal:{}", ToStringBuilder.reflectionToString(signal));
       return signal;
     }
 
     return null;
   }
 
-  private XipSignal decodeXipSignal(byte[] bytes, boolean isPress) {
-
+  private XipSignal decodeXipSignal(byte[] bytes) {
     byte[] content = bytes;
+
+    // 解压消息体
+    try {
+      content = ZipUtil.uncompress(content);
+    } catch (Exception e) {
+      logger.warn("uncompress msg error", e);
+      return null;
+    }
+
     // 对消息体进行DES解密
     if (getEncryptKey() != null) {
       try {
         content = DESUtil.decrypt(content, getEncryptKey());
       } catch (Exception e) {
-        throw new RuntimeException("decode decryption failed." + e.getMessage());
+        logger.warn("decode decryption failed." + e.getMessage());
+        return null;
+      }
+    }
 
-      }
-    }
-    if (isPress) {
-      try {
-        content = ZipUtil.uncompress(content);
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-    String xipMessgeStr = new String(content);
-    XipMessage xipMessage = gson.fromJson(xipMessgeStr.trim(), XipMessage.class);
-    if (xipMessage == null) {
-      logger.warn("invalid xipmessage");
+    // 反序列化成消息对象
+    String messgeStr = new String(content);
+    XipMessage message = gson.fromJson(messgeStr.trim(), XipMessage.class);
+    if (message == null) {
+      logger.warn("invalid message");
       return null;
     }
-    XipHeader header = gson.fromJson(xipMessage.getXipHeader(), XipHeader.class);
-
+    XipHeader header = message.getHeader();
     Class<?> type = typeMetaInfo.find(header.getMessageCode());
     if (null == type) {
-      throw new RuntimeException("unknow message code:" + header.getMessageCode());
+      logger.error("unknow message code:" + header.getMessageCode());
+      return null;
     }
 
-    XipSignal signal = (XipSignal) gson.fromJson(xipMessage.getXipBody(), type);
-
+    XipSignal signal = (XipSignal) gson.fromJson(message.getBody(), type);
     if (null != signal) {
       signal.setIdentification(header.getTransactionAsUUID());
     }
-
     return signal;
   }
 
@@ -111,14 +102,6 @@ public class HttpRequestJSONDecoder implements Transformer<HttpRequest, Object> 
 
   public int getDumpBytes() {
     return dumpBytes;
-  }
-
-  public boolean isDebugEnabled() {
-    return isDebugEnabled;
-  }
-
-  public void setDebugEnabled(boolean isDebugEnabled) {
-    this.isDebugEnabled = isDebugEnabled;
   }
 
   public byte[] getEncryptKey() {

@@ -75,7 +75,7 @@ public class HttpAcceptor {
     bootstrap.setOption("child.keepAlive", true);
     bootstrap.setOption("child.tcpNoDelay", true);
     bootstrap.setOption("child.soLinger", -1);
-    bootstrap.setOption("child.sendBufferSize", -1);
+    bootstrap.setOption("child.sendBufferSize", 32 * 1024); // 默认16K
 
     int retryCount = 0;
     boolean binded = false;

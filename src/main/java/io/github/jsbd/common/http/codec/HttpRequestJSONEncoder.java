@@ -1,14 +1,15 @@
 package io.github.jsbd.common.http.codec;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.github.jsbd.common.lang.DESUtil;
 import io.github.jsbd.common.lang.ZipUtil;
-import io.github.jsbd.common.serialization.protocol.annotation.Compress;
 import io.github.jsbd.common.serialization.protocol.annotation.SignalCode;
 import io.github.jsbd.common.serialization.protocol.xip.XipHeader;
 import io.github.jsbd.common.serialization.protocol.xip.XipMessage;
 import io.github.jsbd.common.serialization.protocol.xip.XipSignal;
+
+import java.io.IOException;
+import java.util.UUID;
+
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
@@ -20,26 +21,17 @@ import org.jboss.netty.handler.codec.oneone.OneToOneEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.UUID;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class HttpRequestJSONEncoder extends OneToOneEncoder {
 
   private static final Logger logger    = LoggerFactory.getLogger(HttpRequestJSONEncoder.class);
 
   private int                 dumpBytes = 256;
-  private boolean             isDebugEnabled;
   private byte[]              encryptKey;
   private Gson                gson      = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * org.jboss.netty.handler.codec.oneone.OneToOneEncoder#encode(org.jboss.netty
-   * .channel.ChannelHandlerContext, org.jboss.netty.channel.Channel,
-   * java.lang.Object)
-   */
   @Override
   protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg) throws Exception {
 
@@ -47,16 +39,17 @@ public class HttpRequestJSONEncoder extends OneToOneEncoder {
 
     if (msg instanceof XipSignal) {
       byte[] bytes = encodeXip((XipSignal) msg, request);
-      request.setHeader("Content-Length", bytes.length);
+      request.headers().set("Content-Length", bytes.length);
       request.setContent(ChannelBuffers.wrappedBuffer(bytes));
     } else if (msg instanceof byte[]) {
       byte[] bytes = (byte[]) msg;
-      request.setHeader("Content-Length", bytes.length);
+      request.headers().set("Content-Length", bytes.length);
       request.setContent(ChannelBuffers.wrappedBuffer(bytes));
     }
 
     return request;
   }
+
   private byte[] encodeXip(XipSignal signal, HttpRequest request) throws Exception {
 
     SignalCode attr = signal.getClass().getAnnotation(SignalCode.class);
@@ -64,26 +57,12 @@ public class HttpRequestJSONEncoder extends OneToOneEncoder {
       throw new RuntimeException("invalid signal, no messageCode defined.");
     }
 
-    XipHeader header = createHeader((byte) 1, signal.getIdentification(), attr.messageCode(), 1);
-
-    // 更新请求类型
-    header.setTypeForClass(signal.getClass());
-
+    // 将消息序列化成json
     XipMessage xipMessage = new XipMessage();
-    xipMessage.setXipHeader(gson.toJson(header));
-    xipMessage.setXipBody(gson.toJson(signal));
-
+    XipHeader header = createHeader((byte) 1, signal.getIdentification(), attr.messageCode());
+    xipMessage.setHeader(header);
+    xipMessage.setBody(gson.toJson(signal));
     byte[] content = gson.toJson(xipMessage).getBytes("utf-8");
-
-    Compress press = signal.getClass().getAnnotation(Compress.class);
-    if (press != null) {
-      try {
-        content = ZipUtil.compress(content);
-        request.setHeader("isPress", true);
-      } catch (IOException e) {
-        logger.error("err in compress content,e=[{}]", e.getCause());
-      }
-    }
 
     // 对消息体进行DES加密
     if (getEncryptKey() != null) {
@@ -94,21 +73,22 @@ public class HttpRequestJSONEncoder extends OneToOneEncoder {
 
       }
     }
+
+    // 对消息体进行压缩
+    try {
+      content = ZipUtil.compress(content);
+    } catch (IOException e) {
+      logger.error("err in compress content,e=[{}]", e.getCause());
+    }
+
     return content;
   }
 
-  private XipHeader createHeader(byte basicVer, UUID id, int messageCode, int messageLen) {
-
+  private XipHeader createHeader(byte basicVer, UUID uuid, int messageCode) {
     XipHeader header = new XipHeader();
-
-    header.setTransaction(id);
-
-    int headerSize = XipHeader.TLV_HEADER_LENGTH;
-
-    header.setLength(headerSize + messageLen);
+    header.setTransaction(uuid);
     header.setMessageCode(messageCode);
     header.setBasicVer(basicVer);
-
     return header;
   }
 
@@ -120,16 +100,10 @@ public class HttpRequestJSONEncoder extends OneToOneEncoder {
     this.dumpBytes = dumpBytes;
   }
 
-  public boolean isDebugEnabled() {
-    return isDebugEnabled;
-  }
-
-  public void setDebugEnabled(boolean isDebugEnabled) {
-    this.isDebugEnabled = isDebugEnabled;
-  }
   public byte[] getEncryptKey() {
     return encryptKey;
   }
+
   public void setEncryptKey(byte[] encryptKey) {
     this.encryptKey = encryptKey;
   }

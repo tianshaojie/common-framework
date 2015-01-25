@@ -1,7 +1,6 @@
 package io.github.jsbd.common.http.endpoint;
 
 import io.github.jsbd.common.http.TransportUtil;
-import io.github.jsbd.common.http.codec.HttpResponseEncoder;
 import io.github.jsbd.common.http.response.DefaultHttpResponseSender;
 import io.github.jsbd.common.http.response.HttpResponseSender;
 import io.github.jsbd.common.lang.Holder;
@@ -29,7 +28,7 @@ public class ServerEndpoint implements Endpoint {
 
   private Channel                           channel            = null;
   private HttpResponseSender                httpResponseSender = new DefaultHttpResponseSender();
-  private Transformer<Object, HttpResponse> responseEncoder    = new HttpResponseEncoder();
+  private Transformer<Object, HttpResponse> responseEncoder    = null;
 
   private InetSocketAddress                 addr               = null;
 

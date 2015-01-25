@@ -38,9 +38,9 @@ public class ConstantResponseReactor implements HttpReactor {
 
   public void onHttpRequest(Channel channel, HttpRequest request) {
 
-    String uuid = request.getHeader("uuid");
+    String uuid = request.headers().get("uuid");
     if (uuid != null) {
-      response.setHeader("uuid", uuid);
+      response.headers().set("uuid", uuid);
     }
     responseSender.sendResponse(channel, response);
 
