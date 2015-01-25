@@ -75,7 +75,7 @@ public class HttpAcceptor {
     bootstrap.setOption("child.keepAlive", true);
     bootstrap.setOption("child.tcpNoDelay", true);
     bootstrap.setOption("child.soLinger", -1);
-    bootstrap.setOption("child.sendBufferSize", 32 * 1024); // 默认16K
+    bootstrap.setOption("child.sendBufferSize", 32 * 1024); // 默认32K
 
     int retryCount = 0;
     boolean binded = false;
@@ -84,7 +84,7 @@ public class HttpAcceptor {
         channel = bootstrap.bind(new InetSocketAddress(this.acceptIp, this.acceptPort));
         binded = true;
       } catch (ChannelException e) {
-        logger.warn("start failed : " + e + ", and retry...");
+        logger.error("start failed : " + e + ", and retry...");
 
         // 对绑定异常再次进行尝试
         retryCount++;
@@ -104,7 +104,7 @@ public class HttpAcceptor {
     config.setReuseAddress(true);
     config.setReceiveBufferSize(1024);
 
-    logger.info("start succeed in " + acceptIp + ":" + acceptPort);
+    logger.info("HTTP Service start succeed on " + acceptIp + ":" + acceptPort);
   }
 
   public void stop() {
@@ -137,9 +137,9 @@ public class HttpAcceptor {
       } else {
         if (null != errorReactor) {
           logger.error("content is null, try send back client empty HttpResponse.");
-          errorReactor.onHttpRequest(null, request);
+          errorReactor.onHttpRequest(e.getChannel(), request);
         } else {
-          logger.warn("Can not transform bean for req [" + request + "], and missing errorHandler.");
+          logger.error("Can not transform bean for req [" + request + "], and missing errorHandler.");
         }
       }
 

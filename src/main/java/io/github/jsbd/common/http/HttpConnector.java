@@ -26,7 +26,6 @@ public class HttpConnector implements Sender, SenderSync {
   private int                      destPort         = -1;
 
   private ClientBootstrap          bootstrap;
-
   private ScheduledExecutorService exec             = Executors.newSingleThreadScheduledExecutor();
 
   private ChannelDownstreamHandler encoder;

@@ -18,7 +18,7 @@ public class DefaultHttpResponseSender implements HttpResponseSender {
   @Override
   public void sendResponse(Channel channel, HttpResponse response) {
     if (channel == null) {
-      logger.warn("send response, but the channel is closed, responseName=[{}]", response.getClass());
+      logger.error("send response, but the channel is closed, responseName=[{}]", response.getClass());
       return;
     }
     ChannelFuture future = channel.write(response);

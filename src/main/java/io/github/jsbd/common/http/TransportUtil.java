@@ -15,7 +15,6 @@ public class TransportUtil {
   public static final ChannelLocal<Endpoint> endpoints        = new ChannelLocal<Endpoint>();
 
   public static void attachEndpointToSession(Channel channel, Endpoint endpoint) {
-    // TODO
     // Netty allow to set/get attachment on Channel in the near feature, e.g.
     // channel.getAttribute(new AttributeKey<Endpoint>(TRANSPORT_SENDER))
     endpoints.set(channel, endpoint);
