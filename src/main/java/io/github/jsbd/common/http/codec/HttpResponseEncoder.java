@@ -40,7 +40,7 @@ public class HttpResponseEncoder implements Transformer<Object, HttpResponse> {
     DefaultHttpResponse resp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
 
     resp.setStatus(HttpResponseStatus.OK);
-    resp.setHeader(HttpHeaders.Names.CONTENT_TYPE, "application/x-tar");
+    resp.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/x-tar");
 
     if (signal instanceof XipSignal) {
       byte[] bytes = encodeXip((XipSignal) signal);
@@ -49,24 +49,21 @@ public class HttpResponseEncoder implements Transformer<Object, HttpResponse> {
       }
       if (null != bytes) {
         resp.setContent(ChannelBuffers.wrappedBuffer(bytes));
-        resp.setHeader(HttpHeaders.Names.CONTENT_LENGTH, bytes.length);
+        resp.headers().set(HttpHeaders.Names.CONTENT_LENGTH, bytes.length);
       }
     }
 
-    // resp.setHeader("Content-Range", contentRange);
-    // resp.setHeader("Date", date);
-
     HttpRequest req = TransportUtil.getRequestOf(signal);
     if (req != null) {
-      String uuid = req.getHeader("uuid");
+      String uuid = req.headers().get("uuid");
       if (uuid != null) {
-        resp.setHeader("uuid", uuid);
+        resp.headers().set("uuid", uuid);
       }
 
       // 是否需要持久连接
-      String keepAlive = req.getHeader(HttpHeaders.Names.CONNECTION);
+      String keepAlive = req.headers().get(HttpHeaders.Names.CONNECTION);
       if (keepAlive != null) {
-        resp.setHeader(HttpHeaders.Names.CONNECTION, keepAlive);
+        resp.headers().set(HttpHeaders.Names.CONNECTION, keepAlive);
       }
     }
 

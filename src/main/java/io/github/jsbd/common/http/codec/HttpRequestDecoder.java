@@ -54,7 +54,7 @@ public class HttpRequestDecoder implements Transformer<HttpRequest, Object> {
         logger.debug(ByteUtil.bytesAsHexString(bytes, dumpBytes));
       }
       boolean isPress = false;
-      if (request.getHeader("isPress") != null) {
+      if (request.headers().get("isPress") != null) {
         isPress = true;
       }
 

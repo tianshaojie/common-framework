@@ -75,7 +75,7 @@ public class HttpAcceptor {
     bootstrap.setOption("child.keepAlive", true);
     bootstrap.setOption("child.tcpNoDelay", true);
     bootstrap.setOption("child.soLinger", -1);
-    bootstrap.setOption("child.sendBufferSize", -1);
+    bootstrap.setOption("child.sendBufferSize", 32 * 1024);
 
     int retryCount = 0;
     boolean binded = false;
@@ -139,7 +139,7 @@ public class HttpAcceptor {
           logger.error("content is null, try send back client empty HttpResponse.");
           errorReactor.onHttpRequest(null, request);
         } else {
-          logger.warn("Can not transform bean for req [" + request + "], and missing errorHandler.");
+          logger.error("Can not transform bean for req [" + request + "], and missing errorHandler.");
         }
       }
 

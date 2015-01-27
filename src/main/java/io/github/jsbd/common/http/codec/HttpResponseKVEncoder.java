@@ -27,7 +27,7 @@ public class HttpResponseKVEncoder implements Transformer<Object, HttpResponse> 
     DefaultHttpResponse resp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
 
     resp.setStatus(HttpResponseStatus.OK);
-    resp.setHeader(HttpHeaders.Names.CONTENT_TYPE, contextType);
+    resp.headers().set(HttpHeaders.Names.CONTENT_TYPE, contextType);
 
     if (signal instanceof XipSignal) {
       String string = encodeXip((XipSignal) signal);
@@ -40,27 +40,27 @@ public class HttpResponseKVEncoder implements Transformer<Object, HttpResponse> 
           resp.setStatus(HttpResponseStatus.FOUND);
           String content = string.substring(string.indexOf("=") + 1);
           if (content != null && !"null".equals(content)) {
-            resp.setHeader(HttpHeaders.Names.LOCATION, content);
+            resp.headers().set(HttpHeaders.Names.LOCATION, content);
           } else {
             resp.setStatus(HttpResponseStatus.NOT_FOUND);
           }
         }
         resp.setContent(ChannelBuffers.wrappedBuffer(string.getBytes()));
-        resp.setHeader(HttpHeaders.Names.CONTENT_LENGTH, resp.getContent().writerIndex());
+        resp.headers().set(HttpHeaders.Names.CONTENT_LENGTH, resp.getContent().writerIndex());
       }
     }
 
     HttpRequest req = TransportUtil.getRequestOf(signal);
     if (req != null) {
-      String uuid = req.getHeader("uuid");
+      String uuid = req.headers().get("uuid");
       if (uuid != null) {
-        resp.setHeader("uuid", uuid);
+        resp.headers().set("uuid", uuid);
       }
 
       // 是否需要持久连接
-      String keepAlive = req.getHeader(HttpHeaders.Names.CONNECTION);
+      String keepAlive = req.headers().get(HttpHeaders.Names.CONNECTION);
       if (this.isKeepAlive() && keepAlive != null) {
-        resp.setHeader(HttpHeaders.Names.CONNECTION, keepAlive);
+        resp.headers().set(HttpHeaders.Names.CONNECTION, keepAlive);
       }
     }
 
@@ -89,32 +89,18 @@ public class HttpResponseKVEncoder implements Transformer<Object, HttpResponse> 
     this.isDebugEnabled = isDebugEnabled;
   }
 
-  /**
-   * @return the contextType
-   */
   public String getContextType() {
     return contextType;
   }
 
-  /**
-   * @param contextType
-   *          the contextType to set
-   */
   public void setContextType(String contextType) {
     this.contextType = contextType;
   }
 
-  /**
-   * @return the keepAlive
-   */
   public boolean isKeepAlive() {
     return keepAlive;
   }
 
-  /**
-   * @param keepAlive
-   *          the keepAlive to set
-   */
   public void setKeepAlive(boolean keepAlive) {
     this.keepAlive = keepAlive;
   }

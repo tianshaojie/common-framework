@@ -32,14 +32,6 @@ public class HttpRequestJSONEncoder extends OneToOneEncoder {
   private byte[]              encryptKey;
   private Gson                gson      = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * org.jboss.netty.handler.codec.oneone.OneToOneEncoder#encode(org.jboss.netty
-   * .channel.ChannelHandlerContext, org.jboss.netty.channel.Channel,
-   * java.lang.Object)
-   */
   @Override
   protected Object encode(ChannelHandlerContext ctx, Channel channel, Object msg) throws Exception {
 
@@ -47,11 +39,11 @@ public class HttpRequestJSONEncoder extends OneToOneEncoder {
 
     if (msg instanceof XipSignal) {
       byte[] bytes = encodeXip((XipSignal) msg, request);
-      request.setHeader("Content-Length", bytes.length);
+      request.headers().set("Content-Length", bytes.length);
       request.setContent(ChannelBuffers.wrappedBuffer(bytes));
     } else if (msg instanceof byte[]) {
       byte[] bytes = (byte[]) msg;
-      request.setHeader("Content-Length", bytes.length);
+      request.headers().set("Content-Length", bytes.length);
       request.setContent(ChannelBuffers.wrappedBuffer(bytes));
     }
 
@@ -79,7 +71,7 @@ public class HttpRequestJSONEncoder extends OneToOneEncoder {
     if (press != null) {
       try {
         content = ZipUtil.compress(content);
-        request.setHeader("isPress", true);
+        request.headers().set("isPress", true);
       } catch (IOException e) {
         logger.error("err in compress content,e=[{}]", e.getCause());
       }

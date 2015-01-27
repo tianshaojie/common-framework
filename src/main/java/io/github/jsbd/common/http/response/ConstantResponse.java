@@ -58,7 +58,7 @@ public class ConstantResponse {
 
   public static HttpResponse get200WithContentTypeResponse(String contentType) {
     DefaultHttpResponse response200WithContentType = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-    response200WithContentType.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType);
+    response200WithContentType.headers().set(HttpHeaders.Names.CONTENT_TYPE, contentType);
     return response200WithContentType;
   }
 

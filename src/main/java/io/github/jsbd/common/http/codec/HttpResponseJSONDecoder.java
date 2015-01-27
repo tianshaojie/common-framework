@@ -29,14 +29,6 @@ public class HttpResponseJSONDecoder extends OneToOneDecoder {
   private byte[]               encryptKey;
   private Gson                 gson      = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * org.jboss.netty.handler.codec.oneone.OneToOneDecoder#decode(org.jboss.netty
-   * .channel.ChannelHandlerContext, org.jboss.netty.channel.Channel,
-   * java.lang.Object)
-   */
   @Override
   protected Object decode(ChannelHandlerContext ctx, Channel channel, Object msg) throws Exception {
     if (logger.isDebugEnabled()) {
@@ -56,7 +48,7 @@ public class HttpResponseJSONDecoder extends OneToOneDecoder {
       byte[] bytes = new byte[content.readableBytes()];
       content.readBytes(bytes);
       boolean isCompress = false;
-      if (response.getHeader("isPress") != null) {
+      if (response.headers().get("isPress") != null) {
         isCompress = true;
       }
       if (logger.isDebugEnabled() && isDebugEnabled) {
